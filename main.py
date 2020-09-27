@@ -5,18 +5,19 @@ from PySide2.QtWidgets import QMessageBox
 import design, inputDB, keysDB
 
 listOfXls = pd.DataFrame(columns=['Name','Category','Country','Activated']) #Таблица всех файлов экселя
-base = [] #Лист пандасов
+base = [] #Лист пандасов. Структура таблицы - из xls (решить, какой стандарт)
+
 #Соответственно, вот тут и есть связь 1-1 по индексам
+
 
 #Список категорий и стран
 countries = []
 categories = []
 
 #Заметки того, что надо сделать
-#1. Кнопка чтобы создать заготовку xls для заполнения (просто 4 колонки)
+#1. Кнопка чтобы создать заготовку xls для заполнения (просто колонки)
 #2. Ситуация, при которой мы загружаем файл с некоторой категорией\страной,
 # а после берём и удаляем их из списка. Придумать, как лучше обработать подобное.
-
 
 
 class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
@@ -24,14 +25,34 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)    
         self.addXlsBtn.clicked.connect(self.input_database)
-        self.set_item() #Для теста
-        
+        #self.set_item() #Для теста
+        self.categoryBox.currentTextChanged.connect(self.currentTextChanged)
+        self.countryBox.currentTextChanged.connect(self.currentTextChanged)
+        self.listWidget.itemChanged.connect(self.itemSelectionChanged)
+
+    def itemSelectionChanged(self,item):
+        item_index = listOfXls.loc[listOfXls['Name'] == item.text()]
+        item_index = item_index.index[0]
+        if not item.checkState():
+            listOfXls.iloc[item_index].Activated = False
+        else:
+            listOfXls.iloc[item_index].Activated = True
+        print(listOfXls)
+
     def input_database(self):
         self.dialog = input_DB()
+        #Блокируем сигналы, чтобы нормально заполнялись боксы после их изменений
+        self.categoryBox.blockSignals(True) 
+        self.countryBox.blockSignals(True) 
+
         if self.dialog.exec()==QtWidgets.QDialog.Accepted:
             self.update_boxes()
+            self.update_list()
+        self.categoryBox.blockSignals(False)
+        self.countryBox.blockSignals(False) 
 
-    def set_item(self):
+
+    def set_item(self,item):
         #Пока просто выставляет пустой элемент, переписать под заполнение
         #из класса input_DB
 
@@ -40,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         #Подумать на тему того, чтобы изначально был пункт "Все",
         #и как это красиво можно связать со структурами
         #(в плане редактирования, чтобы не удалить случайно)
-        chkBoxItem = QtWidgets.QListWidgetItem()
+        chkBoxItem = QtWidgets.QListWidgetItem(item)
         chkBoxItem.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         chkBoxItem.setCheckState(QtCore.Qt.Checked)       
         self.listWidget.addItem(chkBoxItem)
@@ -58,12 +79,49 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         for item in countries:
             self.countryBox.addItem(item)
 
-    def update_list(self):
+    
+    def update_list(self, db=listOfXls):
         #Возможно, необходимая функция для вывода списка по фильтрам
         #Додумать как задействовать отсутствие фильтрации (через "Все")
-        pass
+
+        self.listWidget.clear()
+        
+        for item in range(len(db)):
+            name = db.loc[item].Name
+            self.set_item(name)
+            
+        #блок вывода всех элементов(!) выбранной базы
+        #        for db in base:
+        #            print(db.shape)
+        #            print(db.shape[0])
+        #            for item in range(1,db.shape[0]):
+        #                name = db.loc[item]['Название']
+        #                self.set_item(name)
 
 
+
+    def currentTextChanged(self,value):
+        #Переопределение функции выбранного элемента комбобокса
+        #для заполнения срезами таблицы listofxls
+        
+        currentCategory = self.categoryBox.currentText()
+        currentCountry = self.countryBox.currentText()
+
+        tempdf = listOfXls #проверить насчёт копии
+        if currentCategory != 'Все':
+            tempdf = tempdf[tempdf.Category.str.contains(currentCategory)]
+        if currentCountry != 'Все':
+            tempdf = tempdf[tempdf.Country.str.contains(currentCountry)]
+        tempdf = tempdf.reset_index()
+        print(tempdf)
+        if not tempdf.empty:
+            self.update_list(tempdf)
+        else:
+            self.listWidget.clear()
+        #Нумерация остаётся как взяли (т.е. 2,5... вместо 0,1...). Норм?
+
+    
+        
 class input_DB(QtWidgets.QDialog, inputDB.Ui_InputDB_Form):
     def __init__(self):
         super().__init__()
@@ -106,26 +164,25 @@ class input_DB(QtWidgets.QDialog, inputDB.Ui_InputDB_Form):
 
     def accept_changes(self):
         #Проверка на заполненность данных
-        if self.inpName.text()=="" or self.inpCategory.currentText()=="" or self.inpCountry.currentText()=="":
-            QtWidgets.QMessageBox.warning(self, "Ошибка", "Не заполнены все необходимые поля", QMessageBox.Ok)
-            return
-        if not listOfXls[listOfXls['Name'] == self.inpName.text()].empty:
-            QtWidgets.QMessageBox.warning(self, "Ошибка", "База с таким именем уже существует", QMessageBox.Ok)
-            return
         
         #дошить фишку проверки правильности xls файла по колонкам
         #Вопрос лишь в том, в какое место это сделать и как
 
-        #Добавляем сами записи товара
-        self.append_data(self.inpPath.text())
-        
-        #Что именно тут: формируем лист [название, категория, страна, True]
-        #True - поскольку всё по дефолту будет активировано(включено)
-        listOfXls.loc[len(listOfXls)]=[self.inpName.text(),self.inpCategory.currentText(),self.inpCountry.currentText(),True]
-
-        print(base)
+        if self.inpPath.text()=="" and self.inpName.text()=="":
+            pass
+        elif self.inpName.text()=="" or self.inpCategory.currentText()=="" or self.inpCountry.currentText()=="":
+            QtWidgets.QMessageBox.warning(self, "Ошибка", "Не заполнены все необходимые поля", QMessageBox.Ok)
+            return
+        elif not listOfXls[listOfXls['Name'] == self.inpName.text()].empty:
+            QtWidgets.QMessageBox.warning(self, "Ошибка", "База с таким именем уже существует", QMessageBox.Ok)
+            return
+        else:
+            #Добавляем сами записи товара
+            self.append_data(self.inpPath.text())
+            #Что именно тут: формируем лист [название, категория, страна, True]
+            #True - поскольку всё по дефолту будет активировано(включено)
+            listOfXls.loc[len(listOfXls)]=[self.inpName.text(),self.inpCategory.currentText(),self.inpCountry.currentText(),True]
         self.accept()
-
 
     def append_data(self,adress):
         #По сути, это тестовая версия проверки файла,

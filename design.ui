@@ -157,30 +157,30 @@
     <property name="title">
      <string>Файл</string>
     </property>
-    <addaction name="action"/>
-    <addaction name="action_2"/>
-    <addaction name="action_3"/>
+    <addaction name="create_bd"/>
+    <addaction name="load_bd"/>
+    <addaction name="save_bd"/>
     <addaction name="separator"/>
-    <addaction name="action_5"/>
+    <addaction name="exit_action"/>
    </widget>
    <addaction name="menu"/>
   </widget>
-  <action name="action">
+  <action name="create_bd">
    <property name="text">
     <string>Создать БД...</string>
    </property>
   </action>
-  <action name="action_2">
+  <action name="load_bd">
    <property name="text">
     <string>Загрузить БД...</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="save_bd">
    <property name="text">
     <string>Сохранить БД как...</string>
    </property>
   </action>
-  <action name="action_5">
+  <action name="exit_action">
    <property name="text">
     <string>Выход</string>
    </property>

@@ -21,14 +21,14 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(640, 480)
-        self.action = QAction(MainWindow)
-        self.action.setObjectName(u"action")
-        self.action_2 = QAction(MainWindow)
-        self.action_2.setObjectName(u"action_2")
-        self.action_3 = QAction(MainWindow)
-        self.action_3.setObjectName(u"action_3")
-        self.action_5 = QAction(MainWindow)
-        self.action_5.setObjectName(u"action_5")
+        self.create_bd = QAction(MainWindow)
+        self.create_bd.setObjectName(u"create_bd")
+        self.load_bd = QAction(MainWindow)
+        self.load_bd.setObjectName(u"load_bd")
+        self.save_bd = QAction(MainWindow)
+        self.save_bd.setObjectName(u"save_bd")
+        self.exit_action = QAction(MainWindow)
+        self.exit_action.setObjectName(u"exit_action")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -81,11 +81,11 @@ class Ui_MainWindow(object):
         MainWindow.setMenuBar(self.menubar)
 
         self.menubar.addAction(self.menu.menuAction())
-        self.menu.addAction(self.action)
-        self.menu.addAction(self.action_2)
-        self.menu.addAction(self.action_3)
+        self.menu.addAction(self.create_bd)
+        self.menu.addAction(self.load_bd)
+        self.menu.addAction(self.save_bd)
         self.menu.addSeparator()
-        self.menu.addAction(self.action_5)
+        self.menu.addAction(self.exit_action)
 
         self.retranslateUi(MainWindow)
 
@@ -97,10 +97,10 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"\u0422\u0443\u0440\u0431\u043e\u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430 228", None))
-        self.action.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0411\u0414...", None))
-        self.action_2.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0411\u0414...", None))
-        self.action_3.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0411\u0414 \u043a\u0430\u043a...", None))
-        self.action_5.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0445\u043e\u0434", None))
+        self.create_bd.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0411\u0414...", None))
+        self.load_bd.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0411\u0414...", None))
+        self.save_bd.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0411\u0414 \u043a\u0430\u043a...", None))
+        self.exit_action.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0445\u043e\u0434", None))
         self.categoryBox.setItemText(0, QCoreApplication.translate("MainWindow", u"\u0412\u0441\u0435", None))
 
         self.label.setText(QCoreApplication.translate("MainWindow", u"\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f", None))

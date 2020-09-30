@@ -14,13 +14,10 @@ countries = []
 categories = []
 
 #Заметки того, что надо сделать
-#1. Кнопка чтобы создать заготовку xls для заполнения (просто колонки)
-#2. Ситуация, при которой мы загружаем файл с некоторой категорией\страной,
+#1. Ситуация, при которой мы загружаем файл с некоторой категорией\страной,
 # а после берём и удаляем их из списка. Придумать, как лучше обработать подобное.
-
-
-
-
+#2. Кнопки удаления самих баз, редактирования параметров существующих
+#3. Если надо - хитрость с форматом, чтобы не загружать случайно обычные xls
 
 class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -32,24 +29,9 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.countryBox.currentTextChanged.connect(self.currentTextChanged)
         self.listWidget.itemChanged.connect(self.itemSelectionChanged)
         self.save_bd.triggered.connect(self.save_xls)
+        self.load_bd.triggered.connect(self.load_xls)
         self.create_bd.triggered.connect(self.clear_all)
         self.exit_action.triggered.connect(self.exit)
-
-
-
-    def exit(self): #Без комментариев
-        exit()
-
-
-        
-    def itemSelectionChanged(self,item):
-        item_index = listOfXls.loc[listOfXls['Name'] == item.text()]
-        item_index = item_index.index[0]
-        if not item.checkState():
-            listOfXls.iloc[item_index].Activated = False
-        else:
-            listOfXls.iloc[item_index].Activated = True
-
 
 
     def input_database(self):
@@ -62,7 +44,45 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.update_boxes()
             self.update_list()
         self.categoryBox.blockSignals(False)
-        self.countryBox.blockSignals(False) 
+        self.countryBox.blockSignals(False)
+
+
+        
+    def load_xls(self):
+        global base, listOfXls, countries, categories
+        self.categoryBox.blockSignals(True) 
+        self.countryBox.blockSignals(True)
+        
+        if not listOfXls.empty:
+            self.clear_all()
+        
+        bd_path = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите БД",filter="*.xlsx")
+        if bd_path[0]:
+            bd_item = pd.ExcelFile(bd_path[0])
+            listOfXls = bd_item.parse('info')
+            categories = listOfXls.Category.unique().tolist()
+            countries = listOfXls.Country.unique().tolist()
+            categories = list(map(str, categories))
+            countries = list(map(str, countries))
+            for it in listOfXls.index:
+                name = listOfXls.Name[it]
+                new_base = bd_item.parse(name)
+                base.append(new_base)
+            self.update_list()
+            self.update_boxes()
+
+        self.categoryBox.blockSignals(False) 
+        self.countryBox.blockSignals(False)
+        
+            
+        
+    def itemSelectionChanged(self,item):
+        item_index = listOfXls.loc[listOfXls['Name'] == item.text()]
+        item_index = item_index.index[0]
+        if not item.checkState():
+            listOfXls.iloc[item_index].Activated = False
+        else:
+            listOfXls.iloc[item_index].Activated = True
 
 
 
@@ -87,6 +107,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         #для обновления списков на главном окне
         self.categoryBox.clear()
         self.categoryBox.addItem("Все")
+
         for item in categories:
             self.categoryBox.addItem(item)
         
@@ -97,10 +118,14 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
 
     
-    def update_list(self, db=listOfXls):
+    def update_list(self, *args):
         #Функция для вывода списка (по фильтрам)
+        if args:
+            db = args[0]
+        else:
+            db = listOfXls
+
         self.listWidget.clear()
-        print(db)
         for item in range(len(db)):
             name = db.loc[item].Name
             self.set_item(name)
@@ -115,7 +140,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
 
 
-    def currentTextChanged(self,value):
+    def currentTextChanged(self):
         #Переопределение функции выбранного элемента комбобокса
         #для заполнения срезами таблицы listofxls
         
@@ -123,12 +148,12 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         currentCountry = self.countryBox.currentText()
 
         tempdf = listOfXls #проверить насчёт копии
+
         if currentCategory != 'Все':
             tempdf = tempdf[tempdf.Category.str.contains(currentCategory)]
         if currentCountry != 'Все':
             tempdf = tempdf[tempdf.Country.str.contains(currentCountry)]
         tempdf = tempdf.reset_index()
-        print(tempdf)
         if not tempdf.empty:
             self.update_list(tempdf)
         else:
@@ -144,21 +169,31 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         xls_result = QtWidgets.QFileDialog.getSaveFileName(self, "Сохраните файл:",filter="*.xlsx")
         if xls_result[0]:
             with pd.ExcelWriter(xls_result[0]) as writer:
+                listOfXls.to_excel(writer, sheet_name='info', index=False)
                 for table in range(len(base)):
                     table_name = listOfXls.iloc[table].Name
-                    base[table].to_excel(writer, sheet_name=table_name)
+                    base[table].to_excel(writer, sheet_name=table_name, index=False)
 
 
 
     def clear_all(self):
         #Функция для создания новой сессии
         global listOfXls
+        self.categoryBox.blockSignals(True) 
+        self.countryBox.blockSignals(True)
         base.clear()
-        listOfXls = listOfXls.iloc[0:0]
+        listOfXls = listOfXls[0:0]
         countries.clear()
         categories.clear()
         self.update_boxes()
         self.update_list(listOfXls)
+        self.categoryBox.blockSignals(False) 
+        self.countryBox.blockSignals(False)
+
+
+
+    def exit(self): #Без комментариев
+        exit()
 
 
 
@@ -217,21 +252,28 @@ class input_DB(QtWidgets.QDialog, inputDB.Ui_InputDB_Form):
         
         #дошить фишку проверки правильности xls файла по колонкам
         #Вопрос лишь в том, в какое место это сделать и как
+        path = self.inpPath.text()
+        name = self.inpName.text()
+        category = self.inpCategory.currentText()
+        country = self.inpCountry.currentText()
 
-        if self.inpPath.text()=="" and self.inpName.text()=="":
+        if path == "" and name == "":
             pass
-        elif self.inpName.text()=="" or self.inpCategory.currentText()=="" or self.inpCountry.currentText()=="":
+        elif name =="" or category == "" or country == "":
             QtWidgets.QMessageBox.warning(self, "Ошибка", "Не заполнены все необходимые поля", QMessageBox.Ok)
             return
-        elif not listOfXls[listOfXls['Name'] == self.inpName.text()].empty:
+        elif not listOfXls[listOfXls['Name'] == name].empty:
             QtWidgets.QMessageBox.warning(self, "Ошибка", "База с таким именем уже существует", QMessageBox.Ok)
+            return
+        elif len(name)>32:
+            QtWidgets.QMessageBox.warning(self, "Ошибка", "Слишком длинное имя базы (больше 32)", QMessageBox.Ok)
             return
         else:
             #Добавляем сами записи товара
-            self.append_data(self.inpPath.text())
+            self.append_data(path)
             #Что именно тут: формируем лист [название, категория, страна, True]
             #True - поскольку всё по дефолту будет активировано(включено)
-            listOfXls.loc[len(listOfXls)]=[self.inpName.text(),self.inpCategory.currentText(),self.inpCountry.currentText(),True]
+            listOfXls.loc[len(listOfXls)]=[name, category, country, True]
         self.accept()
 
 
@@ -243,7 +285,6 @@ class input_DB(QtWidgets.QDialog, inputDB.Ui_InputDB_Form):
         #Поэтому мы её импортируем и начинаем проверять всё и вся.
 
         df = pd.read_excel(adress, index_col=0)
-        print(df)
         df = df.dropna(how='all') #Удаляем Nan-строки
         if len(df.columns)>5:
             df = df.dropna(axis='columns',how='all')
@@ -311,7 +352,6 @@ class keys_DB(QtWidgets.QDialog, keysDB.Ui_ListControl):
 
         
     def update_list(self):
-        print(self.baseSet)
         self.keysList.clear()
         if self.baseSet:
             for item in self.baseSet:

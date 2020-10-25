@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pulp import *
 import sys
 import copy
@@ -6,7 +7,7 @@ import copy
 
 def algorithm():
     #Тестовый датафрейм, сюда будут добавляться позиции в процессе (рандомно)
-    
+    '''
     df = pd.DataFrame({'Variable': ['x1', 'x2', 'x3','x4'], #Название товаров
                        'Price': [184, 55, 90, 61.5],        #Цена за единицу
                        'Number': [1,1,1,1],                 #Кол-во (инициализация)
@@ -14,6 +15,7 @@ def algorithm():
                         })
 
     sum_res = 40850 #Поле желаемоей суммы
+    '''
     '''
     df = pd.DataFrame({'Variable': ['x1', 'x2', 'x3'], #Название товаров
                        'Price': [10,50,90],        #Цена за единицу
@@ -23,6 +25,15 @@ def algorithm():
 
     sum_res = 205 #Поле желаемоей суммы
     '''
+    
+    df = pd.DataFrame({'Variable': ['x1', 'x2', 'x3','x4','x5'], #Название товаров
+                       'Price': [85.6, 254.98, 85.6, 39, 90],        #Цена за единицу
+                       'Number': [1,1,1,1,1],                 #Кол-во (инициализация)
+                       'Items': [100, 100, 100,100,100]       #Сколько всего доступно
+                        })
+
+    sum_res = 40850 #Поле желаемоей суммы
+    
     items_ratio = 2.5 #Допустимое отношение максимального кол-ва элементов к минимальному
     price_ratio = 0.01 #Допустимое различие между заданной и полученной суммой
 
@@ -30,16 +41,24 @@ def algorithm():
     max_item = sys.maxsize
     max_name = None
 
+    df['total'] = df['Items'] * df['Price']
+    agg = df['total'].aggregate(np.sum)
+    if agg < sum_res:
+        print("Ne, nihuya")
+        return
+
     prob = LpProblem('Sell', LpMaximize) # Objective function
 
     inv_items = list(df['Variable']) # Variable name
 
     items = dict(zip(inv_items, df['Items'])) # Function
     prices = dict(zip(inv_items, df['Price'])) 
-    print(items)
+    print("ЦЕНЫ")
+    print(prices)
 
     inv_vars = LpVariable.dicts('Var', inv_items, lowBound = 1, cat = 'Integer')
-
+    print(inv_vars)
+    
     prob += lpSum([prices[i] * inv_vars[i] for i in inv_items])
     prob += lpSum([prices[i] * inv_vars[i] for i in inv_items]) <= sum_res, 'Общая функция'
 
@@ -63,7 +82,8 @@ def algorithm():
 
         max_item = max(values_list) - 1
         balance = float(max_item / min(values_list))
-        max_name = 'x' + str(values_list.index(max(values_list))+1)
+        max_name = inv_items[values_list.index(max(values_list))]
+
         print(values_list,max_item, max_name)
 
 

@@ -1,7 +1,9 @@
 import sys, os, copy
 import pandas as pd
+import numpy as np
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtWidgets import QMessageBox, QTableWidgetItem
+from pulp import *
 import design, inputDB, keysDB
 
 listOfXls = pd.DataFrame(columns=['Name','Category','Country','Activated']) #Таблица всех файлов экселя
@@ -14,19 +16,21 @@ countries = []
 categories = []
 
 #Заметки того, что надо сделать
-#1. Ситуация, при которой мы загружаем файл с некоторой категорией\страной,
-# а после берём и удаляем их из списка. Придумать, как лучше обработать подобное.
+#1. Done
 #2. Кнопки удаления самих баз, редактирования параметров существующих
 #3. Если надо - хитрость с форматом, чтобы не загружать случайно обычные xls
 #4. Договориться насчёт структуры таблиц относительно что надо и как называется
 #и поменять в коде все наименования
 #5. Додумать отображение и изменение элементов базы в baseInfo.
+#6. Ру\енг названия. Обработка разделений названий
+#7. Если сумма элементов (если все по одному) выше рекомендуемой - исправить.
+
 class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.baseInfo.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-
+        
         self.addXlsBtn.clicked.connect(self.input_database)
         #self.set_item() #Для теста
         self.categoryBox.currentTextChanged.connect(self.currentTextChanged)
@@ -38,8 +42,9 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.load_bd.triggered.connect(self.load_xls)
         self.create_bd.triggered.connect(self.clear_all)
         self.exit_action.triggered.connect(self.exit)
-        self.workBtn.clicked.connect(self.algo)
+        self.workBtn.clicked.connect(self.upd_result_table)
         self.printBtn.clicked.connect(self.print_specification)
+
 
 
     def showChosenBD(self):
@@ -47,6 +52,9 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         index = listOfXls.loc[listOfXls['Name'] == name]
         if not index.empty:
             self.baseInfo.setRowCount(0)
+            self.baseInfo.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            self.baseInfo.setColumnWidth(1, 80)
+            self.baseInfo.setColumnWidth(2, 80)
             index = index.index[0]
             target = base[index]
             for i, row in target.iterrows():
@@ -57,10 +65,12 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 row_price = row['цена $']
                 self.baseInfo.setRowCount(self.baseInfo.rowCount() + 1)
                 self.baseInfo.setItem(i,0,QTableWidgetItem(row_name))
-                self.baseInfo.setItem(i,1,QTableWidgetItem(row_number))
+                self.baseInfo.setItem(i,1,QTableWidgetItem(str(row_number)))
                 self.baseInfo.setItem(i,2,QTableWidgetItem(row_price))
-    
-    def algo(self):
+
+
+
+    def upd_result_table(self):
         '''
         В чём суть: сначала формируем общий фрейм, откуда брать вырезку.
         Вырезка берётся как df.sample(n=count), count = число позиций
@@ -74,34 +84,154 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
         '''
         activated = listOfXls[listOfXls.Activated.astype(str).str.contains('True')]
-        full_list = base[0].copy()
-        full_list = full_list[0:0]
-        for it in activated.index:
-            full_list = pd.concat([full_list, base[it]]).copy()
+        self.result_label.setText("")
+        finish_algo = False
+        while not finish_algo:
+            full_list = base[0].copy()
+            full_list = full_list[0:0]
+            for it in activated.index:
+                full_list = pd.concat([full_list, base[it]]).copy()
 
-        count = int(self.positions.text())
-        print(count)
-        #print(full_list.sample(n=count))
-        self.resultTable.setRowCount(0)
-        full_list = full_list.sample(n=count)
-        #Возможно, индексы надо и сохранить, но тут хз
-        full_list = full_list.reset_index()
+            count = int(self.positions.text())
+            print(count)
+            #print(full_list.sample(n=count))
+            self.resultTable.setRowCount(0)
 
 
-        #А тут идёт блок расчётов, потому что заполнять нужно с итогом
-
+            full_list = full_list.sample(n=count)
+            #Возможно, индексы надо и сохранить, но тут хз
+            full_list = full_list.reset_index()
         
-        for i, row in full_list.iterrows():
-            print(i,row)
-            row_name = row['Название']
-            row_number = row['Количество']
-            row_price = row['цена $']
-            self.resultTable.setRowCount(self.resultTable.rowCount() + 1)
-            self.resultTable.setItem(i,0,QTableWidgetItem(row_name))
-            self.resultTable.setItem(i,1,QTableWidgetItem(row_number))
-            self.resultTable.setItem(i,2,QTableWidgetItem(row_price))
+            #А тут идёт блок расчётов, потому что заполнять нужно с итогом
+        
+            nums = self.algo(full_list)
+            if nums:
+                for i, row in full_list.iterrows():
+                    print(i,row)
+                    row_name = row['Название']
+                    #row_number = row['Количество']
+                    row_number = str(int(nums[i]))
+                    row_price = str(row['цена $'])
+                    self.resultTable.setRowCount(self.resultTable.rowCount() + 1)
+                    self.resultTable.setItem(i,0,QTableWidgetItem(row_name))
+                    self.resultTable.setItem(i,1,QTableWidgetItem(row_number))
+                    self.resultTable.setItem(i,2,QTableWidgetItem(row_price))
+                finish_algo = True
 
 
+
+    def algo(self, df):
+        df['Итог'] = 1
+        
+        sum_res = self.maxValue.text()
+        sum_res = float(sum_res.replace(",","."))
+        df['цена $'] = df['цена $'].str.replace(',','.')
+        df['цена $'] = df['цена $'].astype(float)
+        df['Количество'] = df['Количество'].astype(int)
+        items_ratio = 3.5 #Допустимое отношение максимального кол-ва элементов к минимальному
+        price_ratio = 0.01 #Допустимое различие между заданной и полученной суммой
+
+        finish = True
+        max_item = sys.maxsize
+        max_name = None
+
+        df['total'] = df['Количество'] * df['цена $']
+        agg = df['total'].aggregate(np.sum)
+        if agg < sum_res:
+            print("Ne, nihuya") #Соответственно, вопрос к обработке
+            return
+        
+        prob = LpProblem('Sell', LpMaximize) # Objective function
+
+        inv_items = list(df['Название']) # Variable name
+        inv_items.sort()
+
+        items = dict(zip(inv_items, df['Количество'])) # Function
+        prices = dict(zip(inv_items, df['цена $']))
+        
+        inv_vars = LpVariable.dicts('Var', inv_items, lowBound = 1, cat = 'Integer')
+        
+
+        prob += lpSum([prices[i] * inv_vars[i] for i in inv_items])
+        prob += lpSum([prices[i] * inv_vars[i] for i in inv_items]) <= sum_res, 'Общая функция'
+
+        for val in items:
+            prob += inv_vars[val] <= items[val], val+' Demand'
+
+
+        vals_check = [None,None]
+        old_values = None
+        while finish:
+            if max_name:
+                prob += inv_vars[max_name] <= max_item
+
+            prob.solve()
+            values_list = []
+
+            print('The optimal answer\n'+'-'*70)
+            for v in prob.variables():
+                item = v.varValue
+                if item > 0:
+                    values_list.append(item)
+
+            if len(values_list) < len(inv_items):
+                '''
+                Причина, почему просто вернуть:
+                Можно было бы обработать, но продавать одновременно одни и те же
+                позиции, но с разными ценами\кол-вом - бред. Поэтому просто
+                вернуть и не обращать внимания.
+                '''
+                print("баг с одинаковыми названиями")
+                return
+            
+            max_item = max(values_list) - 1
+            balance = float(max_item / min(values_list))
+            max_name = inv_items[values_list.index(max(values_list))]
+            print(values_list,max_item, max_name)
+            
+            t = list(prices.values())
+                
+            if len(values_list) == len(t):
+                price_res = [t[i] * values_list[i] for i in range(len(t))]
+                price_res = sum(price_res)
+
+            else:
+                #В настройках функции стоит, что минимум должен быть один элемент.
+                #Если уже меньше, чем нужно - то значит 100% ошибка. Значит выходим.
+                print("Обыграть перевызов функции с новым датасетом")
+                return
+
+
+            if old_values == values_list:
+                '''
+                Тут два варианта развития событий:
+                1. Утыкаемся в невозможность на второй итерации. Во времени
+                не теряем, так что можно и вывести результаты.
+                2. Важнее, но маловероятнее - если долго считаем и упираемся.
+                Обидно терять прогресс, лучше вывести что получилось.
+                '''
+                print("Dalshe nikak")
+                if price_res < sum_res:
+                    finish = False
+                else:
+                    return
+                
+            self.result_label.setText(str(price_res))    
+            curr_price_ratio = (sum_res - price_res) / sum_res
+            if balance <= items_ratio and  curr_price_ratio <= price_ratio:
+                finish = False
+    
+            old_values = values_list
+
+        print("Ответ:") #пока что, для отладки
+        for i in range(len(values_list)):
+            print(inv_items[i],":, ",values_list[i])
+            
+        return values_list
+
+
+
+                
     def print_specification(self):
         print(base)
         print(listOfXls)
@@ -117,6 +247,7 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         if self.dialog.exec()==QtWidgets.QDialog.Accepted:
             self.update_boxes()
             self.update_list()
+            
         self.categoryBox.blockSignals(False)
         self.countryBox.blockSignals(False)
 
@@ -145,6 +276,8 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.update_list()
             self.update_boxes()
             self.BDBox.setEnabled(True)
+            self.workBtn.setEnabled(True)
+            self.printBtn.setEnabled(True)
             self.currentTextChanged()
             
         self.categoryBox.blockSignals(False) 
@@ -254,7 +387,6 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def save_xls(self):
         if base==[]:
             return
-        #Сохраняет сами данные, без категорий. Придумать, как сохранять категорию\страну (в первую строку?)
         xls_result = QtWidgets.QFileDialog.getSaveFileName(self, "Сохраните файл:",filter="*.xlsx")
         if xls_result[0]:
             with pd.ExcelWriter(xls_result[0]) as writer:
@@ -454,17 +586,28 @@ class keys_DB(QtWidgets.QDialog, keysDB.Ui_ListControl):
 
                 
     def delete_item(self):
-        if self.keysList.count()>0:
+        if self.keysList.count() > 0:
             item = self.keysList.currentItem()
             index = self.keysList.currentIndex().row()
+
             if self.argument == "inpCategoryBtn":
-                categories.pop(index)
+                cur_column = 'Category'
             else:
-                countries.pop(index)
-            self.keysList.removeItemWidget(item)
-            self.update_list()
+                cur_column = 'Country'
 
+            contains_in_list = listOfXls[cur_column].to_list()
+            contains_in_list = [str(x) for x in contains_in_list]
 
+            item_bool = item.text() in contains_in_list
+            if item_bool == False:
+                if cur_column == 'Category':
+                    categories.pop(index)
+                else:
+                    countries.pop(index)
+                self.keysList.removeItemWidget(item)
+                self.update_list()
+            else:
+                QtWidgets.QMessageBox.warning(self, "Невозможно удалить выбранный элемент", "Существует зависимость элемента внутри базы", QMessageBox.Ok)
 
 
             

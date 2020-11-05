@@ -4,6 +4,9 @@ import numpy as np
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtWidgets import QMessageBox, QTableWidgetItem
 from pulp import *
+from docxtpl import DocxTemplate
+from datetime import datetime
+
 import design, inputDB, keysDB
 
 listOfXls = pd.DataFrame(columns=['Name','Category','Country','Activated']) #Таблица всех файлов экселя
@@ -16,14 +19,13 @@ countries = []
 categories = []
 
 #Заметки того, что надо сделать
-#1. Done
-#2. Кнопки удаления самих баз, редактирования параметров существующих
+#1. Счётчик на попытки подбора. Дабы не уходило в бесконечность, если решения нет
+#2. Окно редактирования параметров существующих баз
 #3. Если надо - хитрость с форматом, чтобы не загружать случайно обычные xls
 #4. Договориться насчёт структуры таблиц относительно что надо и как называется
 #и поменять в коде все наименования
 #5. Додумать отображение и изменение элементов базы в baseInfo.
 #6. Ру\енг названия. Обработка разделений названий
-#7. Если сумма элементов (если все по одному) выше рекомендуемой - исправить.
 
 class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -44,13 +46,59 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.exit_action.triggered.connect(self.exit)
         self.workBtn.clicked.connect(self.upd_result_table)
         self.printBtn.clicked.connect(self.print_specification)
+        self.deleteItemBtn.clicked.connect(self.delete_item_from_base)
+        self.deleteBaseBtn.clicked.connect(self.delete_base)
+        
+        self.baseInfo.cellClicked.connect(self.signal_delete)
+        
+
+
+    def signal_delete(self):
+        print(self.baseInfo.currentRow())
+        print(self.BDBox.currentIndex())
+        print('get signal')
+        self.changeItemBtn.setEnabled(True)
+        self.deleteItemBtn.setEnabled(True)
 
 
 
+    def delete_base(self):
+        global listOfXls
+        msg = QtWidgets.QMessageBox.question(self,'Удаление базы',
+                                             'Вы действительно хотите удалить эту базу?',
+                                             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+
+        if msg == QtWidgets.QMessageBox.Yes:
+            index_base = self.BDBox.currentIndex() - 1
+            base.pop(index_base)
+            listOfXls.drop(index_base, inplace=True)
+            listOfXls = listOfXls.reset_index(drop=True)
+            self.update_boxes()
+            self.update_list()
+
+
+
+    def delete_item_from_base(self):
+        index_base = self.BDBox.currentIndex()
+        index_item = self.baseInfo.currentRow()
+
+        print(index_base)
+        print(base[index_base-1])
+        print(index_item)
+        if index_item >= 0:
+            base[index_base-1] = base[index_base-1].drop(index=index_item).reset_index(drop=True)
+            self.baseInfo.removeRow(index_item)
+            print('deleted')
+            print(base[index_base-1])
+
+
+    
     def showChosenBD(self):
+
         name = self.BDBox.currentText()
         index = listOfXls.loc[listOfXls['Name'] == name]
         if not index.empty:
+            self.deleteBaseBtn.setEnabled(True)
             self.baseInfo.setRowCount(0)
             self.baseInfo.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
             self.baseInfo.setColumnWidth(1, 80)
@@ -67,9 +115,14 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 self.baseInfo.setItem(i,0,QTableWidgetItem(row_name))
                 self.baseInfo.setItem(i,1,QTableWidgetItem(str(row_number)))
                 self.baseInfo.setItem(i,2,QTableWidgetItem(row_price))
+        else:
+            self.baseInfo.setRowCount(0)
+            self.changeItemBtn.setEnabled(False)
+            self.deleteItemBtn.setEnabled(False)
+            self.deleteBaseBtn.setEnabled(False)
 
 
-
+            
     def upd_result_table(self):
         '''
         В чём суть: сначала формируем общий фрейм, откуда брать вырезку.
@@ -109,13 +162,19 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
                 for i, row in full_list.iterrows():
                     print(i,row)
                     row_name = row['Название']
-                    #row_number = row['Количество']
                     row_number = str(int(nums[i]))
-                    row_price = str(row['цена $'])
+
+                    row_price = str('%.2f' % row['цена $'])
+
+                    total = row['цена $']*int(nums[i])
+                    total = ('%.2f' % total)
+                    row_total = str(total)
+                    
                     self.resultTable.setRowCount(self.resultTable.rowCount() + 1)
                     self.resultTable.setItem(i,0,QTableWidgetItem(row_name))
                     self.resultTable.setItem(i,1,QTableWidgetItem(row_number))
                     self.resultTable.setItem(i,2,QTableWidgetItem(row_price))
+                    self.resultTable.setItem(i,3,QTableWidgetItem(row_total))
                 finish_algo = True
 
 
@@ -135,10 +194,16 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
         max_item = sys.maxsize
         max_name = None
 
+        #Проверка на достижимость суммы выбранным поддатасетом?
         df['total'] = df['Количество'] * df['цена $']
         agg = df['total'].aggregate(np.sum)
         if agg < sum_res:
             print("Ne, nihuya") #Соответственно, вопрос к обработке
+            return
+        
+        agg = df['цена $'].aggregate(np.sum)
+        if agg > sum_res:
+            print("Always perebor")
             return
         
         prob = LpProblem('Sell', LpMaximize) # Objective function
@@ -233,8 +298,31 @@ class MainWindow(QtWidgets.QMainWindow, design.Ui_MainWindow):
 
                 
     def print_specification(self):
-        print(base)
-        print(listOfXls)
+
+        doc = DocxTemplate("spec_template.docx")
+        date = datetime.today().strftime('%d.%m.%Y')
+        tbl_contents = []
+        
+        num_rows = self.resultTable.rowCount()
+        for i in range(num_rows):
+            label = i+1
+            name = self.resultTable.item(i,0).text()
+            piece = "шт/ рс"
+            nums = self.resultTable.item(i,1).text()
+            price = self.resultTable.item(i,2).text()
+            total = self.resultTable.item(i,3).text()
+            tbl_contents.append({'label':label, 'cols':[name,piece,nums,price,total]})
+
+        total_price = ('%.2f' % float(self.result_label.text()))
+        context = {'date' : date,
+                   'total_price' : total_price,
+        'tbl_contents': tbl_contents
+        }
+        doc.render(context)
+
+        doc_result = QtWidgets.QFileDialog.getSaveFileName(self, "Сохраните файл:",filter="*.docx")
+        if doc_result[0]:
+            doc.save(doc_result[0])
 
 
     

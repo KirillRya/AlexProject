@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'design.ui'
 ##
-## Created by: Qt User Interface Compiler version 5.15.1
+## Created by: Qt User Interface Compiler version 5.15.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -44,31 +44,28 @@ class Ui_MainWindow(object):
         self.categoryBox = QComboBox(self.BDtab)
         self.categoryBox.addItem("")
         self.categoryBox.setObjectName(u"categoryBox")
-        self.categoryBox.setGeometry(QRect(20, 40, 161, 22))
+        self.categoryBox.setGeometry(QRect(20, 30, 161, 22))
         self.label = QLabel(self.BDtab)
         self.label.setObjectName(u"label")
-        self.label.setGeometry(QRect(20, 20, 61, 16))
+        self.label.setGeometry(QRect(20, 10, 161, 20))
         self.label_2 = QLabel(self.BDtab)
         self.label_2.setObjectName(u"label_2")
-        self.label_2.setGeometry(QRect(20, 70, 47, 13))
+        self.label_2.setGeometry(QRect(20, 60, 161, 20))
         self.countryBox = QComboBox(self.BDtab)
         self.countryBox.addItem("")
         self.countryBox.setObjectName(u"countryBox")
-        self.countryBox.setGeometry(QRect(20, 90, 161, 22))
+        self.countryBox.setGeometry(QRect(20, 80, 161, 22))
         self.listWidget = QListWidget(self.BDtab)
         self.listWidget.setObjectName(u"listWidget")
         self.listWidget.setGeometry(QRect(20, 120, 161, 411))
         self.label_3 = QLabel(self.BDtab)
         self.label_3.setObjectName(u"label_3")
-        self.label_3.setGeometry(QRect(220, 20, 91, 16))
+        self.label_3.setGeometry(QRect(220, 10, 91, 16))
         self.BDBox = QComboBox(self.BDtab)
         self.BDBox.addItem("")
         self.BDBox.setObjectName(u"BDBox")
         self.BDBox.setEnabled(False)
-        self.BDBox.setGeometry(QRect(220, 40, 171, 22))
-        self.addXlsBtn = QPushButton(self.BDtab)
-        self.addXlsBtn.setObjectName(u"addXlsBtn")
-        self.addXlsBtn.setGeometry(QRect(220, 70, 171, 41))
+        self.BDBox.setGeometry(QRect(220, 30, 161, 21))
         self.baseInfo = QTableWidget(self.BDtab)
         if (self.baseInfo.columnCount() < 3):
             self.baseInfo.setColumnCount(3)
@@ -87,9 +84,15 @@ class Ui_MainWindow(object):
         self.baseInfo.horizontalHeader().setDefaultSectionSize(163)
         self.groupBox = QGroupBox(self.BDtab)
         self.groupBox.setObjectName(u"groupBox")
-        self.groupBox.setGeometry(QRect(540, 20, 161, 91))
+        self.groupBox.setGeometry(QRect(540, 0, 161, 111))
         self.verticalLayout = QVBoxLayout(self.groupBox)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.addItemBtn = QPushButton(self.groupBox)
+        self.addItemBtn.setObjectName(u"addItemBtn")
+        self.addItemBtn.setEnabled(False)
+
+        self.verticalLayout.addWidget(self.addItemBtn)
+
         self.changeItemBtn = QPushButton(self.groupBox)
         self.changeItemBtn.setObjectName(u"changeItemBtn")
         self.changeItemBtn.setEnabled(False)
@@ -102,39 +105,44 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addWidget(self.deleteItemBtn)
 
-        self.groupBox_2 = QGroupBox(self.BDtab)
-        self.groupBox_2.setObjectName(u"groupBox_2")
-        self.groupBox_2.setEnabled(False)
-        self.groupBox_2.setGeometry(QRect(700, 20, 61, 91))
-        self.verticalLayout_2 = QVBoxLayout(self.groupBox_2)
+        self.langBox = QGroupBox(self.BDtab)
+        self.langBox.setObjectName(u"langBox")
+        self.langBox.setEnabled(False)
+        self.langBox.setGeometry(QRect(700, 0, 61, 111))
+        self.verticalLayout_2 = QVBoxLayout(self.langBox)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.radioButton = QRadioButton(self.groupBox_2)
-        self.radioButton.setObjectName(u"radioButton")
-        self.radioButton.setChecked(True)
+        self.ru_lang = QRadioButton(self.langBox)
+        self.ru_lang.setObjectName(u"ru_lang")
+        self.ru_lang.setChecked(True)
 
-        self.verticalLayout_2.addWidget(self.radioButton)
+        self.verticalLayout_2.addWidget(self.ru_lang)
 
-        self.radioButton_2 = QRadioButton(self.groupBox_2)
-        self.radioButton_2.setObjectName(u"radioButton_2")
+        self.en_lang = QRadioButton(self.langBox)
+        self.en_lang.setObjectName(u"en_lang")
 
-        self.verticalLayout_2.addWidget(self.radioButton_2)
+        self.verticalLayout_2.addWidget(self.en_lang)
 
         self.groupBox_3 = QGroupBox(self.BDtab)
         self.groupBox_3.setObjectName(u"groupBox_3")
-        self.groupBox_3.setGeometry(QRect(400, 20, 141, 91))
+        self.groupBox_3.setGeometry(QRect(400, 0, 141, 111))
         self.gridLayout_2 = QGridLayout(self.groupBox_3)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.pushButton_2 = QPushButton(self.groupBox_3)
-        self.pushButton_2.setObjectName(u"pushButton_2")
-        self.pushButton_2.setEnabled(False)
-
-        self.gridLayout_2.addWidget(self.pushButton_2, 0, 0, 1, 1)
-
         self.deleteBaseBtn = QPushButton(self.groupBox_3)
         self.deleteBaseBtn.setObjectName(u"deleteBaseBtn")
         self.deleteBaseBtn.setEnabled(False)
 
-        self.gridLayout_2.addWidget(self.deleteBaseBtn, 1, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.deleteBaseBtn, 2, 0, 1, 1)
+
+        self.pushButton_2 = QPushButton(self.groupBox_3)
+        self.pushButton_2.setObjectName(u"pushButton_2")
+        self.pushButton_2.setEnabled(False)
+
+        self.gridLayout_2.addWidget(self.pushButton_2, 1, 0, 1, 1)
+
+        self.addXlsBtn = QPushButton(self.groupBox_3)
+        self.addXlsBtn.setObjectName(u"addXlsBtn")
+
+        self.gridLayout_2.addWidget(self.addXlsBtn, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.BDtab, "")
         self.tab_2 = QWidget()
@@ -226,7 +234,6 @@ class Ui_MainWindow(object):
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"\u0411\u0430\u0437\u0430 xlsx", None))
         self.BDBox.setItemText(0, QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0431\u0430\u0437\u0443...", None))
 
-        self.addXlsBtn.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c xlsx", None))
         ___qtablewidgetitem = self.baseInfo.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0437\u0438\u0446\u0438\u044f", None));
         ___qtablewidgetitem1 = self.baseInfo.horizontalHeaderItem(1)
@@ -234,14 +241,16 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem2 = self.baseInfo.horizontalHeaderItem(2)
         ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\u0426\u0435\u043d\u0430, $/\u0448\u0442.", None));
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041c\u043e\u0434\u0438\u0444\u0430\u0439 \u044d\u043b\u0435\u043c\u0441", None))
+        self.addItemBtn.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u044d\u043b\u0435\u043c\u0435\u043d\u0442", None))
         self.changeItemBtn.setText(QCoreApplication.translate("MainWindow", u"\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u044d\u043b\u0435\u043c\u0435\u043d\u0442", None))
         self.deleteItemBtn.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u044d\u043b\u0435\u043c\u0435\u043d\u0442", None))
-        self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u044f", None))
-        self.radioButton.setText(QCoreApplication.translate("MainWindow", u"\u0420\u0443", None))
-        self.radioButton_2.setText(QCoreApplication.translate("MainWindow", u"Eng", None))
+        self.langBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u044f", None))
+        self.ru_lang.setText(QCoreApplication.translate("MainWindow", u"\u0420\u0443", None))
+        self.en_lang.setText(QCoreApplication.translate("MainWindow", u"Eng", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("MainWindow", u"\u041c\u043e\u0434\u0438\u0444\u0430\u0439 \u0431\u0430\u0437\u0430", None))
-        self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0431\u0430\u0437\u0443", None))
         self.deleteBaseBtn.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u0430\u0437\u0443", None))
+        self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0431\u0430\u0437\u0443", None))
+        self.addXlsBtn.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0431\u0430\u0437\u0443", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.BDtab), QCoreApplication.translate("MainWindow", u"\u0411\u0414", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"\u0427\u0438\u0441\u043b\u043e \u043f\u043e\u0437\u0438\u0446\u0438\u0439:", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0441\u0442\u0438\u0433\u0430\u0435\u043c\u0430\u044f \u0441\u0443\u043c\u043c\u0430:", None))

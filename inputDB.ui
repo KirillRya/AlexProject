@@ -6,17 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>571</width>
-    <height>312</height>
+    <width>569</width>
+    <height>257</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Добавление базы</string>
   </property>
   <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>170</y>
      <width>47</width>
      <height>13</height>
@@ -28,11 +28,11 @@
   </widget>
   <widget class="QLineEdit" name="inpName">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>160</x>
+     <x>140</x>
      <y>80</y>
      <width>201</width>
      <height>20</height>
@@ -40,9 +40,12 @@
    </property>
   </widget>
   <widget class="QPushButton" name="inpPathBtn">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
-     <x>380</x>
+     <x>360</x>
      <y>30</y>
      <width>21</width>
      <height>23</height>
@@ -55,7 +58,7 @@
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>130</y>
      <width>71</width>
      <height>16</height>
@@ -68,7 +71,7 @@
   <widget class="QPushButton" name="inpCountryBtn">
    <property name="geometry">
     <rect>
-     <x>330</x>
+     <x>310</x>
      <y>170</y>
      <width>75</width>
      <height>23</height>
@@ -81,7 +84,7 @@
   <widget class="QPushButton" name="inpCategoryBtn">
    <property name="geometry">
     <rect>
-     <x>330</x>
+     <x>310</x>
      <y>130</y>
      <width>75</width>
      <height>23</height>
@@ -97,7 +100,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>160</x>
+     <x>140</x>
      <y>30</y>
      <width>201</width>
      <height>20</height>
@@ -107,7 +110,7 @@
   <widget class="QComboBox" name="inpCategory">
    <property name="geometry">
     <rect>
-     <x>160</x>
+     <x>140</x>
      <y>130</y>
      <width>131</width>
      <height>22</height>
@@ -117,7 +120,7 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>80</y>
      <width>91</width>
      <height>16</height>
@@ -130,7 +133,7 @@
   <widget class="QComboBox" name="inpCountry">
    <property name="geometry">
     <rect>
-     <x>160</x>
+     <x>140</x>
      <y>170</y>
      <width>131</width>
      <height>22</height>
@@ -140,7 +143,7 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>30</y>
      <width>121</width>
      <height>16</height>
@@ -154,7 +157,7 @@
    <property name="geometry">
     <rect>
      <x>390</x>
-     <y>270</y>
+     <y>220</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -167,7 +170,7 @@
    <property name="geometry">
     <rect>
      <x>480</x>
-     <y>270</y>
+     <y>220</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -175,6 +178,48 @@
    <property name="text">
     <string>Отмена</string>
    </property>
+  </widget>
+  <widget class="QGroupBox" name="loadOption">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>70</y>
+     <width>141</width>
+     <height>80</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Опция создания базы</string>
+   </property>
+   <widget class="QRadioButton" name="rb_newBase">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>111</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Создать новую</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="rb_loadBase">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>121</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Загрузить из файла</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>

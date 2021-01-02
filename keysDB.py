@@ -66,7 +66,7 @@ class Ui_ListControl(object):
     # setupUi
 
     def retranslateUi(self, ListControl):
-        ListControl.setWindowTitle(QCoreApplication.translate("ListControl", u"Dialog", None))
+        ListControl.setWindowTitle(QCoreApplication.translate("ListControl", u"\u0421\u0432\u043e\u0439\u0441\u0442\u0432\u0430", None))
         self.label.setText(QCoreApplication.translate("ListControl", u"\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435:", None))
         self.keysAddBtn.setText(QCoreApplication.translate("ListControl", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c", None))
         self.keysDeleteBtn.setText(QCoreApplication.translate("ListControl", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))

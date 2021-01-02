@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Турбопрограмма 228</string>
+   <string>Убийца 1С, версия 0.01 Pre-Alpha</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -60,7 +60,7 @@
        <widget class="QLabel" name="label">
         <property name="geometry">
          <rect>
-          <x>20</x>
+          <x>21</x>
           <y>10</y>
           <width>161</width>
           <height>20</height>
@@ -73,7 +73,7 @@
        <widget class="QLabel" name="label_2">
         <property name="geometry">
          <rect>
-          <x>20</x>
+          <x>21</x>
           <y>60</y>
           <width>161</width>
           <height>20</height>
@@ -111,7 +111,7 @@
        <widget class="QLabel" name="label_3">
         <property name="geometry">
          <rect>
-          <x>220</x>
+          <x>221</x>
           <y>10</y>
           <width>91</width>
           <height>16</height>
@@ -189,7 +189,7 @@
          </rect>
         </property>
         <property name="title">
-         <string>Модифай элемс</string>
+         <string>Элементы</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
@@ -269,7 +269,7 @@
          </rect>
         </property>
         <property name="title">
-         <string>Модифай база</string>
+         <string>Базы</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="2" column="0">
@@ -283,7 +283,7 @@
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QPushButton" name="pushButton_2">
+          <widget class="QPushButton" name="changeBaseBtn">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -306,99 +306,6 @@
        <attribute name="title">
         <string>Расчёт</string>
        </attribute>
-       <widget class="QLabel" name="label_4">
-        <property name="geometry">
-         <rect>
-          <x>540</x>
-          <y>160</y>
-          <width>101</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Число позиций:</string>
-        </property>
-       </widget>
-       <widget class="QLabel" name="label_5">
-        <property name="geometry">
-         <rect>
-          <x>540</x>
-          <y>200</y>
-          <width>111</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Достигаемая сумма:</string>
-        </property>
-       </widget>
-       <widget class="QSpinBox" name="positions">
-        <property name="geometry">
-         <rect>
-          <x>660</x>
-          <y>160</y>
-          <width>41</width>
-          <height>22</height>
-         </rect>
-        </property>
-        <property name="minimum">
-         <number>1</number>
-        </property>
-        <property name="maximum">
-         <number>20</number>
-        </property>
-       </widget>
-       <widget class="QDoubleSpinBox" name="maxValue">
-        <property name="geometry">
-         <rect>
-          <x>660</x>
-          <y>200</y>
-          <width>101</width>
-          <height>22</height>
-         </rect>
-        </property>
-        <property name="minimum">
-         <double>1.000000000000000</double>
-        </property>
-        <property name="maximum">
-         <double>9999999.990000000223517</double>
-        </property>
-        <property name="singleStep">
-         <double>100.000000000000000</double>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="workBtn">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="geometry">
-         <rect>
-          <x>590</x>
-          <y>260</y>
-          <width>111</width>
-          <height>23</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Для посчитать</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="printBtn">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="geometry">
-         <rect>
-          <x>690</x>
-          <y>430</y>
-          <width>75</width>
-          <height>23</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Печать</string>
-        </property>
-       </widget>
        <widget class="QTableWidget" name="resultTable">
         <property name="geometry">
          <rect>
@@ -435,11 +342,16 @@
        <widget class="QLabel" name="label_6">
         <property name="geometry">
          <rect>
-          <x>180</x>
+          <x>270</x>
           <y>480</y>
           <width>91</width>
           <height>16</height>
          </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+         </font>
         </property>
         <property name="text">
          <string>Текущая сумма:</string>
@@ -448,15 +360,107 @@
        <widget class="QLabel" name="result_label">
         <property name="geometry">
          <rect>
-          <x>270</x>
+          <x>360</x>
           <y>480</y>
-          <width>251</width>
+          <width>161</width>
           <height>16</height>
          </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>8</pointsize>
+         </font>
         </property>
         <property name="text">
          <string/>
         </property>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="geometry">
+         <rect>
+          <x>540</x>
+          <y>10</y>
+          <width>231</width>
+          <height>111</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Параметры подбора</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Число позиций:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" rowspan="2">
+          <widget class="QSpinBox" name="positions">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>20</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0" rowspan="2">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Достигаемая сумма:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QDoubleSpinBox" name="maxValue">
+           <property name="minimum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>9999999.990000000223517</double>
+           </property>
+           <property name="singleStep">
+            <double>100.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_4">
+        <property name="geometry">
+         <rect>
+          <x>540</x>
+          <y>160</y>
+          <width>231</width>
+          <height>151</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Операции</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QPushButton" name="workBtn">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Рассчитать</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="printBtn">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Сохранить в .doc</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </widget>
      </widget>

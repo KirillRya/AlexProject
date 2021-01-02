@@ -3,9 +3,11 @@ import os
 import copy
 import pandas as pd
 import numpy as np
+#import subprocess
+
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QAbstractItemView, QApplication, QDialog, QFileDialog, QHeaderView, QListWidgetItem, \
-    QMainWindow, QMessageBox, QTableWidgetItem
+from PySide2.QtWidgets import QAbstractItemView, QApplication, QDialog, QFileDialog, QHeaderView, \
+    QListWidgetItem, QMainWindow, QMessageBox, QTableWidgetItem, QSpinBox, QDoubleSpinBox
 from pulp import *
 from docxtpl import DocxTemplate
 from datetime import datetime
@@ -26,204 +28,56 @@ countries = []
 categories = []
 
 # Заметки того, что надо сделать
-# 1. Счётчик на попытки подбора. Дабы не уходило в бесконечность, если решения нет
+
 # 2. Окно редактирования параметров существующих баз (название, категория, страна)
 
 # 3. Если надо - хитрость с форматом, чтобы не загружать случайно обычные xls
-# 4. Договориться насчёт структуры таблиц относительно что надо и как называется
-# и поменять в коде все наименования
-
-# 5. Не фильтруется по категориям (проверить сигналы)
-
-# 6. Какой-то ОЧЕНЬ странный баг, что когда добавляешь новую базу без элементов,
-# он не отображает её. Хз, разбираться, копать.
 
 
 class MainWindow(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.baseInfo.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        # Уточнить необходимость наличия (если краши - удалить)
+        self.dialog = None
 
+        self.spinbox = []
+        self.doublebox = []
+        self.box_row = None
+
+        self.baseInfo.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.resultTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        self.addItemBtn.clicked.connect(self.add_new_element)
         self.addXlsBtn.clicked.connect(self.input_database)
-        # self.set_item() #Для теста
+        self.changeItemBtn.clicked.connect(self.change_item)
+        self.deleteBaseBtn.clicked.connect(self.delete_base)
+        self.deleteItemBtn.clicked.connect(self.delete_item_from_base)
+        self.printBtn.clicked.connect(self.print_specification)
+        self.workBtn.clicked.connect(self.upd_result_table)
+
+        self.BDBox.currentTextChanged.connect(self.show_chosen_bd)
         self.categoryBox.currentTextChanged.connect(self.current_text_changed)
         self.countryBox.currentTextChanged.connect(self.current_text_changed)
-        self.BDBox.currentTextChanged.connect(self.show_chosen_bd)
 
         self.listWidget.itemChanged.connect(self.item_selection_changed)
-        self.save_bd.triggered.connect(self.save_xls)
-        self.load_bd.triggered.connect(self.load_xls)
+
         self.create_bd.triggered.connect(self.clear_all)
-        self.exit_action.triggered.connect(self.exit)
-        self.workBtn.clicked.connect(self.upd_result_table)
-        self.printBtn.clicked.connect(self.print_specification)
-        self.deleteItemBtn.clicked.connect(self.delete_item_from_base)
-        self.deleteBaseBtn.clicked.connect(self.delete_base)
-        self.addItemBtn.clicked.connect(self.add_new_element)
-        self.changeItemBtn.clicked.connect(self.change_item)
+        self.exit_action.triggered.connect(sys.exit)
+        self.load_bd.triggered.connect(self.load_xls)
+        self.save_bd.triggered.connect(self.save_xls)
 
         self.baseInfo.cellClicked.connect(self.signal_delete)
 
         self.ru_lang.toggled.connect(self.change_language_in_table)
-        # Уточнить необходимость наличия (если краши - удалить)
-        self.dialog = None
-
-    def change_language_in_table(self):
-        self.changeItemBtn.setEnabled(False)
-        self.deleteItemBtn.setEnabled(False)
-        if self.baseInfo.rowCount() > 0:
-            self.show_chosen_bd()
-        return
-
-    def change_item(self):
-        index_base = self.BDBox.currentIndex()
-        index_row = self.baseInfo.currentRow()
-        temp = base[index_base-1].loc[index_row]
-        t = temp.to_list()
-        t.insert(0, index_base)
-        t.insert(1, index_row)
-
-        self.dialog = AddElementClass(t)
-
-        if self.dialog.exec() == QDialog.Accepted:
-            self.show_chosen_bd()
-            self.changeItemBtn.setEnabled(False)
-            self.deleteItemBtn.setEnabled(False)
 
     def add_new_element(self):
+        # Вызывает класс добавления нового элемента и, если успешно, обновляет отображаемую таблицу
         index_base = self.BDBox.currentIndex()
         self.dialog = AddElementClass([index_base])
 
         if self.dialog.exec() == QDialog.Accepted:
             self.show_chosen_bd()
-
-    def signal_delete(self):
-        print(self.baseInfo.currentRow())
-        print(self.BDBox.currentIndex())
-        print('get signal')
-        self.changeItemBtn.setEnabled(True)
-        self.deleteItemBtn.setEnabled(True)
-
-    def delete_base(self):
-        global listOfXls
-        msg = QMessageBox.question(self, 'Удаление базы',
-                                   'Вы действительно хотите удалить эту базу?',
-                                    QMessageBox.Yes | QMessageBox.No)
-
-        if msg == QMessageBox.Yes:
-            index_base = self.BDBox.currentIndex() - 1
-            base.pop(index_base)
-            listOfXls.drop(index_base, inplace=True)
-            listOfXls = listOfXls.reset_index(drop=True)
-            self.update_boxes()
-            self.update_list()
-            if len(base) == 0:
-                self.workBtn.setEnabled(False)
-                self.printBtn.setEnabled(False)
-
-    def delete_item_from_base(self):
-        index_base = self.BDBox.currentIndex()
-        index_item = self.baseInfo.currentRow()
-        if index_item >= 0:
-            base[index_base-1] = base[index_base-1].drop(index=index_item).reset_index(drop=True)
-            self.baseInfo.removeRow(index_item)
-            if len(base[index_base-1]) == 0:
-                self.changeItemBtn.setEnabled(False)
-                self.deleteItemBtn.setEnabled(False)
-
-    def show_chosen_bd(self):
-        name = self.BDBox.currentText()
-        index = listOfXls.loc[listOfXls['Name'] == name]
-        if not index.empty:
-            self.deleteBaseBtn.setEnabled(True)
-            self.addItemBtn.setEnabled(True)
-            self.langBox.setEnabled(True)
-            self.baseInfo.setRowCount(0)
-            self.baseInfo.clearContents()
-            self.baseInfo.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-            self.baseInfo.setColumnWidth(1, 80)
-            self.baseInfo.setColumnWidth(2, 80)
-            index = index.index[0]
-            target = base[index]
-            for i, row in target.iterrows():
-                # row_name = row['Название']
-                if self.ru_lang.isChecked():
-                    row_name = row['Название RU']
-                else:
-                    row_name = row['Name EN']
-                row_number = str(int(row['Количество']))
-
-                row_price = str(row['цена $'])
-                if "," in row_price:
-                    row_price = str(row['цена $']).replace(',', '.')
-                    row_price = float(row_price)
-                    row_price = str(f"{row_price:.{2}f}")
-                row_price = row_price.replace('.', ',')
-                self.baseInfo.setRowCount(i+1)
-                self.baseInfo.setItem(i, 0, QTableWidgetItem(row_name))
-                self.baseInfo.setItem(i, 1, QTableWidgetItem(row_number))
-                self.baseInfo.setItem(i, 2, QTableWidgetItem(row_price))
-        else:
-            self.baseInfo.setRowCount(0)
-            self.changeItemBtn.setEnabled(False)
-            self.deleteItemBtn.setEnabled(False)
-            self.deleteBaseBtn.setEnabled(False)
-            self.addItemBtn.setEnabled(False)
-
-    def upd_result_table(self):
-        """
-        В чём суть: сначала формируем общий фрейм, откуда брать вырезку.
-        Вырезка берётся как df.sample(n=count), count = число позиций
-        Соответственно, берем только те, которые "включены"
-        И, наверное, добавляется столбец с индексом/названием, чтобы потом
-        взять и изменить количество при необходимости в исходном месте
-
-        Сразу же: надо сделать так, чтобы нельзя было запросить позиций
-        больше, чем есть в проге. То есть, сейчас лимит 20, а пускай у нас
-        лежит 5 позиций. И чтобы не было такого, мол max = размер если меньше 20.
-
-        """
-        activated = listOfXls[listOfXls.Activated.astype(str).str.contains('True')]
-        self.result_label.setText("")
-        finish_alg = False
-        while not finish_alg:
-            full_list = base[0].copy()
-            full_list = full_list[0:0]
-            for it in activated.index:
-                full_list = pd.concat([full_list, base[it]]).copy()
-
-            count = int(self.positions.text())
-            print(count)
-            # print(full_list.sample(n = count))
-            self.resultTable.setRowCount(0)
-
-            full_list = full_list.sample(n=count)
-            # Возможно, индексы надо и сохранить, но тут хз
-            full_list = full_list.reset_index()
-
-            # А тут идёт блок расчётов, потому что заполнять нужно с итогом
-
-            nums = self.algo(full_list)
-            if nums:
-                for i, row in full_list.iterrows():
-                    print(i, row)
-                    # bug сделать общее название (сложить строки ру\енг + слеш между ними)
-                    row_name = row['Название RU'] + '/' + row['Name EN']
-                    row_number = str(int(nums[i]))
-
-                    row_price = str('%.2f' % row['цена $'])
-
-                    total = row['цена $']*int(nums[i])
-                    total = ('%.2f' % total)
-                    row_total = str(total)
-
-                    self.resultTable.setRowCount(self.resultTable.rowCount() + 1)
-                    self.resultTable.setItem(i, 0, QTableWidgetItem(row_name))
-                    self.resultTable.setItem(i, 1, QTableWidgetItem(row_number))
-                    self.resultTable.setItem(i, 2, QTableWidgetItem(row_price))
-                    self.resultTable.setItem(i, 3, QTableWidgetItem(row_total))
-                finish_alg = True
 
     def algo(self, df):
         # bug скорее всего, достаточно заменить название на RU, роли не играет же?
@@ -332,9 +186,9 @@ class MainWindow(QMainWindow, design.Ui_MainWindow):
                 else:
                     return
 
-            self.result_label.setText(str(price_res))
+            self.result_label.setText(str(('%.2f' % price_res)))
             curr_price_ratio = (sum_res - price_res) / sum_res
-            if balance <= items_ratio and  curr_price_ratio <= price_ratio:
+            if balance <= items_ratio and curr_price_ratio <= price_ratio:
                 finish = False
 
             old_values = values_list
@@ -345,176 +199,33 @@ class MainWindow(QMainWindow, design.Ui_MainWindow):
 
         return values_list
 
-    def print_specification(self):
+    def change_item(self):
+        #name = self.BDBox.currentText()
+        #index_base = listOfXls.loc[listOfXls['Name'] == name]
+        #index_base = index_base.index[0]
+        index_base = self.return_index()
+        #index_base = self.BDBox.currentIndex()
 
-        doc = DocxTemplate("spec_template.docx")
-        date = datetime.today().strftime('%d.%m.%Y')
-        tbl_contents = []
+        index_row = self.baseInfo.currentRow()
+        modified_row = base[index_base].loc[index_row]
+        modified_row = modified_row.to_list()
+        modified_row.insert(0, index_base)
+        modified_row.insert(1, index_row)
 
-        num_rows = self.resultTable.rowCount()
-        for i in range(num_rows):
-            label = i+1
-            name = self.resultTable.item(i, 0).text()
-            piece = "шт/ рс"
-            nums = self.resultTable.item(i, 1).text()
-            price = self.resultTable.item(i, 2).text()
-            total = self.resultTable.item(i, 3).text()
-            tbl_contents.append({'label': label, 'cols': [name, piece, nums, price, total]})
-
-        total_price = ('%.2f' % float(self.result_label.text()))
-        context = {'date': date,
-                   'total_price': total_price,
-                   'tbl_contents': tbl_contents}
-        doc.render(context)
-
-        doc_result = QFileDialog.getSaveFileName(self, "Сохраните файл:", filter="*.docx")
-        if doc_result[0]:
-            doc.save(doc_result[0])
-
-    def input_database(self):
-        self.dialog = InputDBClass()
-        # Блокируем сигналы, чтобы нормально заполнялись боксы после их изменений
-        self.categoryBox.blockSignals(True)
-        self.countryBox.blockSignals(True)
+        self.dialog = AddElementClass(modified_row)
 
         if self.dialog.exec() == QDialog.Accepted:
-            self.update_boxes()
-            self.update_list()
-            self.BDBox.setEnabled(True)
-            self.current_text_changed()
-            # self.update_bd_list()
+            self.show_chosen_bd()
+            self.changeItemBtn.setEnabled(False)
+            self.deleteItemBtn.setEnabled(False)
 
-        self.categoryBox.blockSignals(False)
-        self.countryBox.blockSignals(False)
-
-    def load_xls(self):
-        global base, listOfXls, countries, categories
-        self.categoryBox.blockSignals(True)
-        self.countryBox.blockSignals(True)
-
-        bd_path = QFileDialog.getOpenFileName(self, "Выберите БД", filter="*.xlsx")
-        if bd_path[0]:
-            if not listOfXls.empty:
-                self.clear_all()
-            bd_item = pd.ExcelFile(bd_path[0], engine='openpyxl')
-            listOfXls = pd.concat([listOfXls, bd_item.parse('info')]).copy()
-
-            categories = listOfXls.Category.unique().tolist()
-            countries = listOfXls.Country.unique().tolist()
-            categories = list(map(str, categories))
-            countries = list(map(str, countries))
-            for it in listOfXls.index:
-                name = listOfXls.Name[it]
-                new_base = bd_item.parse(name)
-                base.append(new_base)
-            self.update_list()
-            self.update_boxes()
-            self.BDBox.setEnabled(True)
-            self.workBtn.setEnabled(True)
-            self.printBtn.setEnabled(True)
-            self.langBox.setEnabled(True)
-            self.current_text_changed()
-
-        self.categoryBox.blockSignals(False)
-        self.countryBox.blockSignals(False)
-
-    def item_selection_changed(self, item):
-        # Изменение состояния "включения" в базе (галочки в листбоксе)
-        item_index = listOfXls.loc[listOfXls['Name'] == item.text()]
-        item_index = item_index.index[0]
-
-        if not item.checkState():
-            listOfXls['Activated'].iloc[item_index] = False
-        else:
-            listOfXls['Activated'].iloc[item_index] = True
-
-    def set_item(self, item):
-        # Пока просто выставляет пустой элемент, переписать под заполнение
-        # из класса InputDBClass
-
-        # Каким образом - смотреть, что выбрано в категориях и делать срез
-        # с пандаса и вставлять его поэлементно
-        # Подумать на тему того, чтобы изначально был пункт "Все",
-        # и как это красиво можно связать со структурами
-        # (в плане редактирования, чтобы не удалить случайно)
-        checkbox_item = QListWidgetItem(item)
-        checkbox_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-        checkbox_item.setCheckState(Qt.Checked)
-        self.listWidget.addItem(checkbox_item)
-
-    def update_boxes(self):
-        # Функция, вызываемая при добавлении\изменении категориальных признаков
-        # для обновления списков на главном окне
-        self.categoryBox.clear()
-        self.categoryBox.addItem("Все")
-
-        for item in categories:
-            self.categoryBox.addItem(item)
-
-        self.countryBox.clear()
-        self.countryBox.addItem("Все")
-        for item in countries:
-            self.countryBox.addItem(item)
-
-    def update_list(self, *args):
-        # Функция для вывода списка (по фильтрам)
-        if args:
-            db = args[0]
-        else:
-            db = listOfXls
-
-        self.listWidget.clear()
-        for item in range(len(db)):
-            name = db.loc[item].Name
-            self.set_item(name)
-
-    def current_text_changed(self):
-        # Переопределение функции выбранного элемента комбобокса
-        # для заполнения срезами таблицы listOfXls
-
-        current_category = self.categoryBox.currentText()
-        current_country = self.countryBox.currentText()
-
-        temp_df = listOfXls  # проверить насчёт копии
-
-        if current_category != 'Все':
-            temp_df = temp_df[temp_df.Category.astype(str).str.contains(current_category)]
-        if current_country != 'Все':
-            temp_df = temp_df[temp_df.Country.astype(str).str.contains(current_country)]
-        temp_df = temp_df.reset_index()
-        if not temp_df.empty:
-            self.update_list(temp_df)
-        else:
-            self.listWidget.clear()
-
-        self.update_bd_list(temp_df)
-        # Нумерация остаётся как взяли (т.е. 2,5... вместо 0,1...). Норм?
-
-    def update_bd_list(self, df):
-        # Функция для обновления списка баз в комбобоксе BDBox (самый правый)
-        self.categoryBox.blockSignals(False)
-
-        self.BDBox.clear()
-        self.BDBox.addItem("Выберите базу...")
-        name = df['Name']
-        if not name.empty:
-            self.BDBox.setEnabled(True)
-            for item in name:
-                self.BDBox.addItem(item)
-        else:
-            self.BDBox.setEnabled(False)
-        self.categoryBox.blockSignals(True)
-
-    def save_xls(self):
-        if not base:  # base = []
-            return
-        xls_result = QFileDialog.getSaveFileName(self, "Сохраните файл:", filter="*.xlsx")
-        if xls_result[0]:
-            with pd.ExcelWriter(xls_result[0]) as writer:
-                listOfXls.to_excel(writer, sheet_name='info', index=False)
-                for table in range(len(base)):
-                    table_name = listOfXls.iloc[table].Name
-                    base[table].to_excel(writer, sheet_name=table_name, index=False)
+    def change_language_in_table(self):
+        # Переключает язык в базе, если там есть элементы
+        self.changeItemBtn.setEnabled(False)
+        self.deleteItemBtn.setEnabled(False)
+        if self.baseInfo.rowCount() > 0:
+            self.show_chosen_bd()
+        return
 
     def clear_all(self):
         # Функция для создания новой сессии
@@ -547,7 +258,6 @@ class MainWindow(QMainWindow, design.Ui_MainWindow):
 
         self.workBtn.setEnabled(False)
         self.printBtn.setEnabled(False)
-        self.printBtn.setEnabled(False)
         self.deleteBaseBtn.setEnabled(False)
         self.addItemBtn.setEnabled(False)
         self.changeItemBtn.setEnabled(False)
@@ -559,8 +269,396 @@ class MainWindow(QMainWindow, design.Ui_MainWindow):
         self.positions.setValue(1)
         self.maxValue.setValue(1.00)
         self.result_label.setText("")
-    def exit(self):  # Без комментариев
-        exit()
+
+    def current_text_changed(self):
+        # Переопределение функции выбранного элемента комбобокса
+        # для заполнения срезами таблицы listOfXls
+        print("changed")
+        current_category = self.categoryBox.currentText()
+        current_country = self.countryBox.currentText()
+
+        temp_df = listOfXls  # проверить насчёт копии
+
+        if current_category != 'Все':
+            temp_df = temp_df[temp_df.Category.astype(str).str.contains(current_category)]
+        if current_country != 'Все':
+            temp_df = temp_df[temp_df.Country.astype(str).str.contains(current_country)]
+        temp_df = temp_df.reset_index()
+        if not temp_df.empty:
+            self.update_list(temp_df)
+        else:
+            self.listWidget.clear()
+
+        self.update_bd_list(temp_df)
+        return
+        # Нумерация остаётся как взяли (т.е. 2,5... вместо 0,1...). Норм?
+
+    def delete_base(self):
+        global listOfXls
+        msg = QMessageBox.question(self, 'Удаление базы',
+                                   'Вы действительно хотите удалить эту базу?',
+                                   QMessageBox.Yes | QMessageBox.No)
+
+        if msg == QMessageBox.Yes:
+            index_base = self.BDBox.currentIndex() - 1
+            base.pop(index_base)
+            listOfXls.drop(index_base, inplace=True)
+            listOfXls = listOfXls.reset_index(drop=True)
+            self.update_boxes()
+            self.update_list()
+            if len(base) == 0:
+                self.workBtn.setEnabled(False)
+                self.printBtn.setEnabled(False)
+
+    def delete_item_from_base(self):
+        #index_base = self.BDBox.currentIndex()
+
+        #name = self.BDBox.currentText()
+        #index_base = listOfXls.loc[listOfXls['Name'] == name]
+        #index_base = index_base.index[0]
+        index_base = self.return_index()
+
+        index_item = self.baseInfo.currentRow()
+        if index_item >= 0:
+            base[index_base] = base[index_base].drop(index=index_item).reset_index(drop=True)
+            self.baseInfo.removeRow(index_item)
+            if len(base[index_base]) == 0:
+                self.changeItemBtn.setEnabled(False)
+                self.deleteItemBtn.setEnabled(False)
+
+    def input_database(self):
+        self.dialog = InputDBClass()
+        # Блокируем сигналы, чтобы нормально заполнялись боксы после их изменений
+        self.categoryBox.blockSignals(True)
+        self.countryBox.blockSignals(True)
+
+        if self.dialog.exec() == QDialog.Accepted:
+            self.update_boxes()
+            self.update_list()
+            self.BDBox.setEnabled(True)
+            self.current_text_changed()
+            self.workBtn.setEnabled(True)
+            # self.update_bd_list()
+
+        self.categoryBox.blockSignals(False)
+        self.countryBox.blockSignals(False)
+
+    def item_selection_changed(self, item):
+        # Изменение состояния "включения" в базе (галочки в листбоксе)
+        item_index = listOfXls.loc[listOfXls['Name'] == item.text()]
+        item_index = item_index.index[0]
+
+        if not item.checkState():
+            listOfXls['Activated'].iloc[item_index] = False
+        else:
+            listOfXls['Activated'].iloc[item_index] = True
+
+    def load_xls(self):
+        global base, listOfXls, countries, categories
+        self.categoryBox.blockSignals(True)
+        self.countryBox.blockSignals(True)
+
+        bd_path = QFileDialog.getOpenFileName(self, "Выберите БД", filter="*.xlsx")
+        if bd_path[0]:
+            if not listOfXls.empty:
+                self.clear_all()
+            bd_item = pd.ExcelFile(bd_path[0], engine='openpyxl')
+            listOfXls = pd.concat([listOfXls, bd_item.parse('info')]).copy()
+
+            categories = listOfXls.Category.unique().tolist()
+            countries = listOfXls.Country.unique().tolist()
+            categories = list(map(str, categories))
+            countries = list(map(str, countries))
+            for it in listOfXls.index:
+                name = listOfXls.Name[it]
+                new_base = bd_item.parse(name)
+                base.append(new_base)
+            self.update_list()
+            self.update_boxes()
+            self.BDBox.setEnabled(True)
+            self.workBtn.setEnabled(True)
+            self.langBox.setEnabled(True)
+            self.current_text_changed()
+
+        self.categoryBox.blockSignals(False)
+        self.countryBox.blockSignals(False)
+
+    def print_specification(self):
+        doc = DocxTemplate("Data\Templates\spec_template.docx")
+        date = datetime.today().strftime('%d.%m.%Y')
+        tbl_contents = []
+
+        num_rows = self.resultTable.rowCount()
+        for i in range(num_rows):
+            label = i+1
+            name = self.resultTable.item(i, 0).text()
+            piece = "шт/ рс"
+            #nums = self.resultTable.item(i, 1).text()
+            nums = self.spinbox[i].value()
+            #price = self.resultTable.item(i, 2).text()
+            price = self.doublebox[i].value()
+            total = self.resultTable.item(i, 3).text()
+            tbl_contents.append({'label': label, 'cols': [name, piece, nums, price, total]})
+
+        total_price = ('%.2f' % float(self.result_label.text()))
+        context = {'date': date,
+                   'total_price': total_price,
+                   'tbl_contents': tbl_contents}
+        doc.render(context)
+
+        doc_result = QFileDialog.getSaveFileName(self, "Сохраните файл:", filter="*.docx")
+        if doc_result[0]:
+            doc.save(doc_result[0])
+            QMessageBox.information(self, "Сохранение файла", "Файл сохранён успешно!")
+            os.startfile(doc_result[0])
+
+    def return_index(self):
+        name = self.BDBox.currentText()
+        index_base = listOfXls.loc[listOfXls['Name'] == name]
+        index_base = index_base.index[0]
+        return index_base
+
+    def save_xls(self):
+        if not base:  # base = []
+            return
+        xls_result = QFileDialog.getSaveFileName(self, "Сохраните файл:", filter="*.xlsx")
+        if xls_result[0]:
+            with pd.ExcelWriter(xls_result[0]) as writer:
+                listOfXls.to_excel(writer, sheet_name='info', index=False)
+                for table in range(len(base)):
+                    table_name = listOfXls.iloc[table].Name
+                    base[table].to_excel(writer, sheet_name=table_name, index=False)
+
+    def set_item(self, item, status):
+        # Пока просто выставляет пустой элемент, переписать под заполнение
+        # из класса InputDBClass
+
+        # Каким образом - смотреть, что выбрано в категориях и делать срез
+        # с пандаса и вставлять его поэлементно
+        # Подумать на тему того, чтобы изначально был пункт "Все",
+        # и как это красиво можно связать со структурами
+        # (в плане редактирования, чтобы не удалить случайно)
+        checkbox_item = QListWidgetItem(item)
+        checkbox_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+        if status:
+            checkbox_item.setCheckState(Qt.Checked)
+        else:
+            checkbox_item.setCheckState(Qt.Unchecked)
+        self.listWidget.addItem(checkbox_item)
+
+    def show_chosen_bd(self):
+        name = self.BDBox.currentText()
+        index = listOfXls.loc[listOfXls['Name'] == name]
+        if not index.empty:
+            self.deleteBaseBtn.setEnabled(True)
+            self.addItemBtn.setEnabled(True)
+            self.langBox.setEnabled(True)
+            self.baseInfo.setRowCount(0)
+            self.baseInfo.clearContents()
+            self.baseInfo.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            self.baseInfo.setColumnWidth(1, 80)
+            self.baseInfo.setColumnWidth(2, 80)
+            index = index.index[0]
+            target = base[index]
+            for i, row in target.iterrows():
+                # row_name = row['Название']
+                if self.ru_lang.isChecked():
+                    row_name = row['Название RU']
+                else:
+                    row_name = row['Name EN']
+                row_number = str(int(row['Количество']))
+
+                row_price = str(row['цена $'])
+                if "," in row_price:
+                    row_price = str(row['цена $']).replace(',', '.')
+                    row_price = float(row_price)
+                    row_price = str(f"{row_price:.{2}f}")
+                row_price = row_price.replace('.', ',')
+                self.baseInfo.setRowCount(i+1)
+                self.baseInfo.setItem(i, 0, QTableWidgetItem(row_name))
+                self.baseInfo.setItem(i, 1, QTableWidgetItem(row_number))
+                self.baseInfo.setItem(i, 2, QTableWidgetItem(row_price))
+        else:
+            self.baseInfo.setRowCount(0)
+            self.changeItemBtn.setEnabled(False)
+            self.deleteItemBtn.setEnabled(False)
+            self.deleteBaseBtn.setEnabled(False)
+            self.addItemBtn.setEnabled(False)
+
+    def signal_delete(self):
+        # Фиксирует сигнал нажатие на элемент подбазы и даёт доступ
+        # на редактирование\удаление элемента (если было недоступно)
+        self.changeItemBtn.setEnabled(True)
+        self.deleteItemBtn.setEnabled(True)
+
+    def update_bd_list(self, df):
+        # Функция для обновления списка баз в комбобоксе BDBox (самый правый)
+        self.categoryBox.blockSignals(True)
+
+        self.BDBox.clear()
+        self.BDBox.addItem("Выберите базу...")
+        name = df['Name']
+        if not name.empty:
+            self.BDBox.setEnabled(True)
+            for item in name:
+                self.BDBox.addItem(item)
+        else:
+            self.BDBox.setEnabled(False)
+        self.categoryBox.blockSignals(False)
+
+    def update_boxes(self):
+        # Функция, вызываемая при добавлении\изменении категориальных признаков
+        # для обновления списков на главном окне
+        self.categoryBox.clear()
+        self.categoryBox.addItem("Все")
+
+        for item in categories:
+            self.categoryBox.addItem(item)
+
+        self.countryBox.clear()
+        self.countryBox.addItem("Все")
+        for item in countries:
+            self.countryBox.addItem(item)
+
+    def update_list(self, *args):
+        # Функция для вывода списка (по фильтрам)
+        if args:
+            db = args[0]
+        else:
+            db = listOfXls
+
+        self.listWidget.clear()
+        for item in range(len(db)):
+            name = db.loc[item].Name
+            status = db.loc[item].Activated
+            self.set_item(name, status)
+
+    def upd_result_table(self):
+        """
+        В чём суть: сначала формируем общий фрейм, откуда брать вырезку.
+        Вырезка берётся как df.sample(n=count), count = число позиций
+        Соответственно, берем только те, которые "включены"
+        И, наверное, добавляется столбец с индексом/названием, чтобы потом
+        взять и изменить количество при необходимости в исходном месте
+
+        Сразу же: надо сделать так, чтобы нельзя было запросить позиций
+        больше, чем есть в проге. То есть, сейчас лимит 20, а пускай у нас
+        лежит 5 позиций. И чтобы не было такого, мол max = размер если меньше 20.
+
+        """
+        self.spinbox = []
+        self.doublebox = []
+
+        activated = listOfXls[listOfXls.Activated.astype(str).str.contains('True')]
+        if activated.empty:
+            QMessageBox.warning(self, "Ошибка", "Ни одна база не активна", QMessageBox.Ok)
+            return
+        self.result_label.setText("")
+        finish_alg = False
+        count_tries = 0
+        while not finish_alg:
+            if count_tries > 20:
+                QMessageBox.warning(self, "Ошибка", "Не считается:( Возможно, что-то не так с данными", QMessageBox.Ok)
+                self.printBtn.setEnabled(False)
+                return
+
+            full_list = base[0].copy()
+            full_list = full_list[0:0]
+            for it in activated.index:
+                full_list = pd.concat([full_list, base[it]]).copy()
+
+            count = int(self.positions.text())
+
+            # print(full_list.sample(n = count))
+            self.resultTable.setRowCount(0)
+
+            if len(full_list) < count:
+                QMessageBox.warning(self, "Ошибка", "Позиций в базах меньше, чем запрашивается", QMessageBox.Ok)
+                return
+
+            full_list = full_list.sample(n=count)
+            # Возможно, индексы надо и сохранить, но тут хз
+            full_list = full_list.reset_index()
+
+
+
+            # А тут идёт блок расчётов, потому что заполнять нужно с итогом
+            '''
+            import tkinter.messagebox
+            try:
+                nums = self.algo(full_list)
+                tkinter.messagebox.showinfo('Save', 'Ok')
+            except:
+                import traceback
+                tkinter.messagebox.showinfo("ERROR", traceback.format_exc())
+                raise
+            '''
+            nums = self.algo(full_list)
+            if nums:
+                for i, row in full_list.iterrows():
+                    row_name = row['Название RU'] + '/' + row['Name EN']
+                    row_number = str(int(nums[i]))
+
+                    row_price = str('%.2f' % row['цена $'])
+
+                    total = row['цена $']*int(nums[i])
+                    total = ('%.2f' % total)
+                    row_total = str(total)
+
+                    self.resultTable.setRowCount(self.resultTable.rowCount() + 1)
+                    self.resultTable.setItem(i, 0, QTableWidgetItem(row_name))
+                    # self.resultTable.setItem(i, 1, QTableWidgetItem(row_number))
+                    # self.resultTable.setItem(i, 2, QTableWidgetItem(row_price))
+
+                    self.cur_sbox = QSpinBox()
+                    self.cur_sbox.setMinimum(1)
+                    self.cur_sbox.setMaximum(99999)
+                    self.cur_sbox.setValue(int(row_number))
+                    self.resultTable.setCellWidget(i, 1, self.cur_sbox)
+                    self.spinbox.append(self.cur_sbox)
+
+                    self.cur_dbox = QDoubleSpinBox()
+                    self.cur_dbox.setMaximum(99999999.99)
+                    self.cur_dbox.setValue(float(row_price))
+                    self.resultTable.setCellWidget(i, 2, self.cur_dbox)
+                    self.doublebox.append(self.cur_dbox)
+
+                    self.cur_sbox.valueChanged.connect(self.spins_changed)
+                    self.cur_dbox.valueChanged.connect(self.spins_changed)
+
+                    self.resultTable.setItem(i, 3, QTableWidgetItem(row_total))
+
+                finish_alg = True
+            count_tries += 1
+        self.printBtn.setEnabled(True)
+        self.resultTable.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.resultTable.setColumnWidth(1, 80)
+        self.resultTable.setColumnWidth(2, 80)
+        self.resultTable.setColumnWidth(3, 80)
+
+    def spins_changed(self, value):
+        row = self.resultTable.currentRow()
+        num = self.spinbox[row].value()
+        price = self.doublebox[row].value()
+        total = int(num) * float(price)
+        total = ('%.2f' % total)
+        row_total = str(total)
+        self.resultTable.setItem(row, 3, QTableWidgetItem(row_total))
+
+        sum_price = 0
+        for i in range(0, self.resultTable.rowCount()):
+            price_pack = self.resultTable.item(i, 3)
+            price_pack = price_pack.text()
+            sum_price += float(price_pack)
+        self.result_label.setText(str(sum_price))
+        '''
+        for i in range(0, self.resultTable.rowCount()):
+            nums = self.resultTable.item(i, 1).value()
+            total = nums
+            total = ('%.2f' % total)
+            row_total = str(total)
+            self.resultTable.setItem(i, 3, QTableWidgetItem(row_total))
+        '''
 
 
 class InputDBClass(QDialog, inputDB.Ui_InputDB_Form):
@@ -577,14 +675,28 @@ class InputDBClass(QDialog, inputDB.Ui_InputDB_Form):
 
         self.update_comboboxes()
 
+        self.rb_loadBase.toggled.connect(self.change_load_option)
+
+    def change_load_option(self):
+        if self.rb_loadBase.isChecked():
+            self.inpPath.setEnabled(True)
+            self.inpPathBtn.setEnabled(True)
+            self.inpName.setEnabled(False)
+        else:
+            self.inpPath.setEnabled(False)
+            self.inpPathBtn.setEnabled(False)
+            self.inpName.setEnabled(True)
+        pass
+
     def import_xls(self):
         # Выбор xls из файловой системы через диалог,
         # установка пути и названия файла
         xls_item = QFileDialog.getOpenFileName(self, "Выберите папку", filter="*.xls *.xlsx")
-        self.inpPath.setText(xls_item[0])
-        self.inpName.setText(os.path.splitext(os.path.basename(xls_item[0]))[0])
-        # Доступ к изменению имени файла (ход, чтобы гарантировано загрузить какой-либо файл)
-        self.inpName.setEnabled(True)
+        if xls_item[0]:
+            self.inpPath.setText(xls_item[0])
+            self.inpName.setText(os.path.splitext(os.path.basename(xls_item[0]))[0])
+            # Доступ к изменению имени файла (ход, чтобы гарантировано загрузить какой-либо файл)
+            self.inpName.setEnabled(True)
 
     def open_keys_db(self, item):
         # Функция вызова окна редактирования свойств (категория\страна)
@@ -628,7 +740,10 @@ class InputDBClass(QDialog, inputDB.Ui_InputDB_Form):
             return
         else:
             # Добавляем сами записи товара
-            self.append_data(path)
+            if self.rb_loadBase.isChecked():
+                self.append_data(path)
+            else:
+                self.append_data("Data/Templates/base_template.xlsx")
             # Что именно тут: формируем лист [название, категория, страна, True]
             # True - поскольку всё по дефолту будет активировано(включено)
             listOfXls.loc[len(listOfXls)] = [name, category, country, True]
@@ -659,6 +774,7 @@ class InputDBClass(QDialog, inputDB.Ui_InputDB_Form):
 
         # df = pd.read_excel(adress, index_col=0)
         # df = pd.ExcelFile.parse(adress, index_col=0,engine='openpyxl')
+
         df = pd.ExcelFile(adress, engine='openpyxl')
         df = df.parse(index_col=0, engine='openpyxl')
 
@@ -765,18 +881,28 @@ class AddElementClass(QDialog, addElement.Ui_AddElement_Form):
         self.setupUi(self)
         self.setWindowModality(Qt.ApplicationModal)
         self.OKBtn.clicked.connect(self.accept_new_item)
-        self.cancelBtn.clicked.connect(self.reject_new_item)
+        self.cancelBtn.clicked.connect(self.close)
         self.args = args[0]
 
         if len(self.args) > 1:
+
+            self.setWindowTitle("Редактирование элемента")
+            self.label_5.setText("Редактирование элемента")
+            self.OKBtn.setText("Изменить")
+
             self.row = self.args[1]
             self.nameRu.setText(self.args[2])
-            self.nameEn.setText(self.args[3])  # Временно! (пока нет EN названия в таблице)
+            self.nameEn.setText(self.args[3])
             self.num.setValue(self.args[4])
-            self.args[4] = self.args[5].replace(',', '.')
-            self.price.setValue(float(self.args[4]))
+            if "," in str(self.args[5]):
+                val = self.args[5].replace(',', '.')
+                self.price.setValue(float(val))
+            # self.args[4] = self.args[5].replace(',', '.')
+            # self.args[4] = self.args[5]
+            else:
+                self.price.setValue(float(self.args[5]))
 
-        self.index_base = self.args[0] - 1
+        self.index_base = self.args[0]
 
     def accept_new_item(self):
         name_ru_val = self.nameRu.text()
@@ -791,7 +917,7 @@ class AddElementClass(QDialog, addElement.Ui_AddElement_Form):
         elif name_en_val == '':
             QMessageBox.warning(self, "Ошибка", "Введите название на английском языке", QMessageBox.Ok)
             return
-        elif price_val == 0.0:
+        elif price_val == "0,00":
             QMessageBox.warning(self, "Ошибка", "Нельзя задавать нулевую цену", QMessageBox.Ok)
             return
         else:
@@ -804,9 +930,6 @@ class AddElementClass(QDialog, addElement.Ui_AddElement_Form):
                 base[self.index_base] = base[self.index_base].append(new_val, ignore_index=True)
 
             self.accept()
-
-    def reject_new_item(self):
-        self.close()
 
 
 def main():

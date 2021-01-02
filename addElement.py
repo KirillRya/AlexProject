@@ -114,7 +114,7 @@ class Ui_AddElement_Form(object):
     # setupUi
 
     def retranslateUi(self, AddElement_Form):
-        AddElement_Form.setWindowTitle(QCoreApplication.translate("AddElement_Form", u"Dialog", None))
+        AddElement_Form.setWindowTitle(QCoreApplication.translate("AddElement_Form", u"\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u0430", None))
         self.label_5.setText(QCoreApplication.translate("AddElement_Form", u"\u0414\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043d\u043e\u0432\u043e\u0433\u043e \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u0430:", None))
         self.label.setText(QCoreApplication.translate("AddElement_Form", u"\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435", None))
         self.label_2.setText(QCoreApplication.translate("AddElement_Form", u"Name", None))
